@@ -1,0 +1,85 @@
+// MongoDB Aggregation Pipeline for Sales Analysis
+// Collection: orders
+
+// Objective:
+// Analyze total revenue, top customers, and best-selling products
+
+// 1. Total Revenue Calculation
+db.orders.aggregate([
+  {
+    $group: {
+      _id: null,
+      totalRevenue: { $sum: "$amount" }
+    }
+  }
+]);
+
+// 2. Revenue by Customer
+db.orders.aggregate([
+  {
+    $group: {
+      _id: "$customer_id",
+      totalSpent: { $sum: "$amount" },
+      totalOrders: { $sum: 1 }
+    }
+  },
+  {
+    $sort: { totalSpent: -1 }
+  }
+]);
+
+// 3. Top 5 Customers
+db.orders.aggregate([
+  {
+    $group: {
+      _id: "$customer_id",
+      totalSpent: { $sum: "$amount" }
+    }
+  },
+  {
+    $sort: { totalSpent: -1 }
+  },
+  {
+    $limit: 5
+  }
+]);
+
+// 4. Product Performance Analysis
+db.orders.aggregate([
+  {
+    $unwind: "$products"
+  },
+  {
+    $group: {
+      _id: "$products.product_name",
+      totalQuantity: { $sum: "$products.quantity" },
+      totalRevenue: {
+        $sum: {
+          $multiply: ["$products.quantity", "$products.price"]
+        }
+      }
+    }
+  },
+  {
+    $sort: { totalRevenue: -1 }
+  }
+]);
+
+// 5. Monthly Sales Trend
+db.orders.aggregate([
+  {
+    $group: {
+      _id: {
+        year: { $year: "$order_date" },
+        month: { $month: "$order_date" }
+      },
+      monthlyRevenue: { $sum: "$amount" }
+    }
+  },
+  {
+    $sort: {
+      "_id.year": 1,
+      "_id.month": 1
+    }
+  }
+]);
